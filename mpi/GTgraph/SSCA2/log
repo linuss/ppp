@@ -1,0 +1,25 @@
+
+Graph Generator Parameters
+
+**************************
+SCALE			: 10
+TotVertices		: 1024
+MaxCliqueSize		: 10
+ProbUnidirectional	: 0.200000
+ProbIntercliqueEdges	: 0.500000
+MaxParallelEdges	: 3
+MaxWeight		: 1024
+MinWeight		: 0
+WRITE_TO_FILE		: 1
+SORT_EDGELISTS		: 1
+SORT_TYPE	        : 0
+OUTFILE			: ../../sample_graphs/small
+LOGFILE			: log
+
+Graph statistics
+****************
+No. of vertices               : 1024
+No. of edges                  : 15323
+No. of clusters               : 192
+No. of intra-cluster edges    : 13721
+No. of inter-cluster edges    : 1602

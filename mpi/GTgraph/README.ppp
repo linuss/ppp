@@ -1,0 +1,57 @@
+The graph generators included in this folder are based on the GTgraph software from Georgia Tech (note that 
+their own licensing and copyrighting rules apply for this package). For a brief description of the package, 
+consult the README file and the brief explanations in gen.pdf. For bug reports and/or clarification
+requests, please contact A.L.Varbanescu@vu.nl. Finally, the original sources can be downloaded from 
+http://www.cse.psu.edu/~madduri/software/GTgraph/index.html 
+
+To make and compile the graph generators, follow the instructions in the README file. 
+
+Several modifications have been made to adapt these graphs for usage for the PPP 2012-2013 MPI assignment.  
+The performance of this generator (and its poor coding, at places) is by no means of concern for your PPP
+assignment. 
+
+Note the following:
+
+1.  The three available generators have been adapted such that the file is graph saved, in the PPP required 
+format, in the file with the name indicated by the user, and with the added extension ".new". For example, 
+when using: 
+
+./GTgraph-random -t 1 -n 100 -m 1000 -o test.gr
+
+A graph with 100 vertices and 1000 edges will be generated and stored in two different formats:
+ i. the GTgraph format -> in the file test.gr
+ii. the PPP format -> in the file test.gr.new 
+
+2.  A new flag has been added to signal whether a graph is oriented or not. This flag is stored in the graph 
+files (it is the third numerical value on the first row of the file): 0 = not oriented, 1 = oriented.
+Note that, currently, the value for the graph orientation is hard-coded in the globals.c file for each of the 
+generators. Note that the flipping of this flag will not change the generator's behavior: the same data
+will be stored in the file, but there will be corrections done when reading. 
+Thus - to make sure that the flag has the value you expect - make sure you check the globals.c file and the 
+first line in the graph file. 
+
+3.  A fourth type of graphs has been added: the special graphs, which are: 
+ 
+3.1. GRAPH_TYPE = 0 - a star of stars: a graph with SIZE layers, where the nodes on each layer have 
+exactly OUT_DEGREE neighbours, with the exception of the leaves (the nodes on the very last level). 
+A star with SIZE=1 and OUT_DEGREE=10 has 1 central node, with 10 neighbors.
+A star with SIZE=2 and OUT_DEGREE=4 has 1 central node, connected to 4 neighbors, each of which has 
+4 other neighbors.  
+The dimensions for this type of graph are: 
+-- size = the number of levels in the star
+-- degree = the number of neighbors per each "center" 
+To create the SIZE = 2 and OUT_DEGREE = 4 star graph, one should use: 
+ 
+./GTgraph-special -t 0 -s 2 -d 4 -o star_2_4.gr 
+
+3.2. GRAPH_TYPE=1 - a chain: each vertex has two neighbors: the previous and the following node. 
+A chain of SIZE = 10 has 10 vertices and 9 edges.
+To create such a graph, one should use: 
+
+./GTgraph-special -t 1 -s 10 -o chain_10.gr 
+
+4. All the resulting PPP graphs from all the generators should be usable for testing the PPP MPI 
+assignment. Size limitations may apply, so do make sure that your implementation is robust in 
+such cases (i.e., it can warn the user that the graph sizes are too large and exit gracefully.). 
+
+

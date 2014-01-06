@@ -1,0 +1,13 @@
+Searching for solution for cube of size 3, twists = 2, seed = 0
+Cube of size 3, solved = false
+          G  G  R 
+          W  W  W 
+          W  W  W 
+ W  B  B  O  O  O  G  G  Y  B  R  R 
+ W  B  B  O  O  O  G  G  Y  B  R  R 
+ W  O  O  G  G  G  R  R  Y  B  R  R 
+          Y  Y  Y 
+          Y  Y  Y 
+          B  B  O 
+Bound now: 1 2
+Solving cube possible in 1 ways of 2 steps

@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# compiles and tests an asp submission for validity
+
+# set: $THREADS $PROBLEM_FILE
+
+REFERENCE_OUTPUT_FILE=/home/ppp/pub/mpi/bin/ASP_16_OUTPUT
+
+OUTPUT_FILE=asp.test.out
+ERROR_FILE=asp.test.err
+DIFF_FILE=asp.test.diff
+
+echo "checking asp for correct output"
+
+echo prun -v -1 -sge-script /usr/local/sitedep/reserve.sge/sge-script ./asp-par 2 -print 16 2> $ERROR_FILE | tee $OUTPUT_FILE
+prun -v -1 -sge-script /usr/local/sitedep/reserve.sge/sge-script ./asp-par 2 -print 16 2> $ERROR_FILE | tee $OUTPUT_FILE
+
+if grep "took" $ERROR_FILE > /dev/null ; 
+then 
+    true ;
+else 
+    echo "*** Asp did not print run time to stderr, please correct"
+    echo "stderr printout:"
+    cat $ERROR_FILE
+    exit ;
+fi
+
+diff $REFERENCE_OUTPUT_FILE $OUTPUT_FILE > $DIFF_FILE
+
+if test -s $DIFF_FILE; 
+then 
+    echo "*** Asp generated wrong output!" 
+    echo "Diff between correct and found output:"
+    cat $DIFF_FILE;
+else 
+    echo "Asp output ok"; 
+fi

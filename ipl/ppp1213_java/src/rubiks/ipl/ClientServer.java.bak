@@ -1,0 +1,411 @@
+package rubiks.ipl;
+
+import ibis.ipl.*;
+import rubiks.ipl.Cube;
+import rubiks.ipl.CubeCache;
+import java.util.LinkedList;
+import java.io.IOException;
+
+public class ClientServer{
+
+  PortType portType = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_EXPLICIT, PortType.CONNECTION_MANY_TO_ONE);
+  PortType pollPort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_DATA, PortType.RECEIVE_POLL);
+
+  IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT);
+
+  public static void printUsage() {
+      System.out.println("Rubiks Cube solver");
+      System.out.println("");
+      System.out
+              .println("Does a number of random twists, then solves the rubiks cube with a simple");
+      System.out
+              .println(" brute-force approach. Can also take a file as input");
+      System.out.println("");
+      System.out.println("USAGE: Rubiks [OPTIONS]");
+      System.out.println("");
+      System.out.println("Options:");
+      System.out.println("--size SIZE\t\tSize of cube (default: 3)");
+      System.out
+              .println("--twists TWISTS\t\tNumber of random twists (default: 11)");
+      System.out
+              .println("--seed SEED\t\tSeed of random generator (default: 0");
+      System.out
+              .println("--threads THREADS\t\tNumber of threads to use (default: 1, other values not supported by sequential version)");
+      System.out.println("");
+      System.out
+              .println("--file FILE_NAME\t\tLoad cube from given file instead of generating it");
+      System.out.println("");
+  }
+
+
+
+
+  private int solutions(Cube cube, CubeCache cache, ReceivePort pollPort) {
+      if (cube.isSolved()) {
+          return 1;
+      }
+
+      if (cube.getTwists() >= cube.getBound()) {
+          return 0;
+      }
+
+      if(checkBound(cube.getBound(), pollPort) == 0){
+        return 0;
+      }
+
+      // generate all possible cubes from this one by twisting it in
+      // every possible way. Gets new objects from the cache
+      Cube[] children = cube.generateChildren(cache);
+
+      int result = 0;
+      
+
+      for (Cube child : children) {
+          // recursion step
+          int childSolutions = solutions(child, cache, pollPort);
+          if (childSolutions > 0) {
+              result += childSolutions;
+          }
+          // put child object in cache
+          cache.put(child);
+      }
+
+      return result;
+  }
+
+
+  private static int checkBound(int bound, ReceivePort pollPort) throws IOException{
+    ReadMessage r = pollPort.poll();
+    if(r == null){
+      return 1;
+    }else{
+      int globalBound = r.readInt();
+      r.finish();
+      if(globalBound < bound){
+        return 0;
+      }else{
+        return 1;
+      }
+    }
+  }
+
+
+
+
+  private static int solutions(Cube cube, CubeCache cache,  LinkedList<Cube> allChildren, int depth){
+    if(cube.isSolved()){
+      return 1;
+    }
+    if(cube.getTwists() == depth){
+      allChildren.add(cube);
+      return 0;
+    }
+
+    Cube[] children = cube.generateChildren(cache);
+    int result = 0;
+
+    for(Cube child : children){
+      int childSolutions = solutions(child, cache, allChildren, depth);
+      if(childSolutions > 0){
+        result += childSolutions;
+      }
+      cache.put(child);
+    }
+
+    return result;
+  }
+
+
+  private static int solutions(Cube cube, CubeCache cache) {
+      if (cube.isSolved()) {
+          return 1;
+      }
+
+      if (cube.getTwists() >= cube.getBound()) {
+          return 0;
+      }
+
+      // generate all possible cubes from this one by twisting it in
+      // every possible way. Gets new objects from the cache
+      Cube[] children = cube.generateChildren(cache);
+
+      int result = 0;
+      
+
+      for (Cube child : children) {
+          // recursion step
+          int childSolutions = solutions(child, cache);
+          if (childSolutions > 0) {
+              result += childSolutions;
+          }
+          // put child object in cache
+          cache.put(child);
+      }
+
+      return result;
+  }
+
+
+
+  private static LinkedList<Cube> ServerStart(String[] arguments){
+
+    printUsage();
+    Cube cube = null;
+    LinkedList<Cube> children = new LinkedList<Cube>();
+    CubeCache cache = null;
+
+    // default parameters of puzzle
+    int size = 3;
+    int twists = 2;
+    int seed = 0;
+    String fileName = null;
+    int serverWork = 1;
+
+    // number of threads used to solve puzzle
+    // (not used in sequential version)
+
+    for (int i = 0; i < arguments.length; i++) {
+        if (arguments[i].equalsIgnoreCase("--size")) {
+            i++;
+            size = Integer.parseInt(arguments[i]);
+        } else if (arguments[i].equalsIgnoreCase("--twists")) {
+            i++;
+            twists = Integer.parseInt(arguments[i]);
+        } else if (arguments[i].equalsIgnoreCase("--seed")) {
+            i++;
+            seed = Integer.parseInt(arguments[i]);
+        } else if (arguments[i].equalsIgnoreCase("--file")) {
+            i++;
+            fileName = arguments[i];
+        } else if (arguments[i].equalsIgnoreCase("--help") || arguments[i].equalsIgnoreCase("-h")) {
+            printUsage();
+            System.exit(0);
+        } else if (arguments[i].equalsIgnoreCase("--n")){
+            i++;
+            serverWork = Integer.parseInt(arguments[i]);
+        } else {
+            System.err.println("unknown option : " + arguments[i]);
+            printUsage();
+            System.exit(1);
+        }
+    }
+
+    // create cube
+    if (fileName == null) {
+        cube = new Cube(size, twists, seed);
+    } else {
+        try {
+            cube = new Cube(fileName);
+        } catch (Exception e) {
+            System.err.println("Cannot load cube from file: " + e);
+            System.exit(1);
+        }
+    }
+   
+    // create CubeCache
+    cache = new CubeCache(cube.getSize());
+
+
+    // print cube info
+    System.out.println("Searching for solution for cube of size "
+            + cube.getSize() + ", twists = " + twists + ", seed = " + seed);
+    cube.print(System.out);
+    System.out.flush();
+
+    
+    //Generate children 
+    if(solutions(cube, cache, children, serverWork) > 0){
+      cache = new CubeCache(cube.getSize());
+      int bound = 0;
+      int result = 0;
+
+      while(result == 0){
+        bound++;
+        cube.setBound(bound);
+        result = solutions(cube,cache);
+      }
+
+      System.out.println("Server has found a solution!");
+      System.out.println("Solving cube possible in " + result + " ways of " + bound + " steps");
+      
+
+      //ODO: tell nodes to quit
+      
+    }
+
+    return children;
+  }
+
+  private void broadcastBound(LinkedList<IbisIdentifier> nodes, int bound, SendPort broadcaster) throws Exception{
+    for(IbisIdentifier id : nodes){
+      broadcaster.connect(id, "pollport");
+      WriteMessage w = broadcaster.newMessage();
+      w.writeInt(bound);
+      w.finish();
+      broadcaster.disconnect(id, "pollport");
+    }
+  }
+
+
+  private void server(Ibis myIbis, String[] args) throws IOException, ClassNotFoundException {
+    
+    LinkedList<Cube> workQueue = new LinkedList<Cube>();
+    LinkedList<IbisIdentifier> workerQueue = new LinkedList<IbisIdentifier>();
+    LinkedList<Response> answers = new LinkedList<Response>();
+    LinkedList<IbisIdentifier> nodes = new LinkedList<IbisIdentifier>();
+
+    int numberOfChildren = 0;
+    int bound = Integer.MAX_VALUE;
+
+
+    //get the initial cubes that the workers can start on.
+    workQueue = ServerStart(args);
+    System.out.printf("Server has generated %d children!\n", workQueue.size());
+
+    numberOfChildren = workQueue.size();
+    
+    ReceivePort receiver = myIbis.createReceivePort(portType, "server");
+    receiver.enableConnections();
+
+    SendPort broadcaster = myIbis.createSendPort(portType);
+
+
+    while(answers.size() < numberOfChildren){
+      ReadMessage r = receiver.receive();
+      Response response = (Response)(r.readObject());
+      r.finish();
+      workerQueue.add(response.getId());
+      nodes.add(response.getId());
+      if(response.getAns() != -1){
+        answers.add(response);
+        if(response.getBound() < bound){
+          bound = response.getBound();
+          System.out.printf("The servers bound is now at %d\n", bound);
+          broadcastBound(nodes, bound, broadcaster);
+        }
+      }
+      if(!workQueue.isEmpty()){
+        IbisIdentifier id = workerQueue.removeFirst();
+        //Create a port for responding to the request
+        SendPort sender = myIbis.createSendPort(portType);
+        sender.connect(id, id.name());
+        //Send the message (the cube)
+        WriteMessage w = sender.newMessage();
+        w.writeObject(workQueue.removeFirst());
+        w.finish();
+        //close port
+        sender.close();
+      }
+
+    }
+
+    //Tell nodes that we're done
+    for(IbisIdentifier id : workerQueue){
+      SendPort sender = myIbis.createSendPort(portType);
+      sender.connect(id, id.name());
+      WriteMessage w = sender.newMessage();
+      w.writeString("Done!");
+      w.finish();
+      sender.close();
+    }
+
+    //Determine the smallest solution calculated by the nodes
+    int min = Integer.MAX_VALUE;
+    int answer = 0;
+    for(Response r : answers){
+      if(r.getBound() <= min){
+        min = r.getBound();
+        answer = r.getAns();
+      }
+      if(r.getBound()==min){
+        answer += r.getAns();
+      }
+    }
+
+    //print out the result
+    System.out.println("Solving cube possible in " +  answer + " ways of " + min  + " steps");
+  }
+
+  private void client(Ibis myIbis, IbisIdentifier server) throws IOException, ClassNotFoundException {
+    int i = 0; 
+    //Create the send port
+    SendPort sender = myIbis.createSendPort(portType);
+    sender.connect(server, "server");
+
+    //Create port for polling
+    ReceivePort pollingPort = myIbis.createReceivePort(pollPort, "pollport");
+    pollingPort.enableConnections();
+
+    //Create and send the first message
+    Response firstMessage = new Response(myIbis.identifier());
+    WriteMessage w = sender.newMessage();
+    w.writeObject(firstMessage);
+    w.finish();
+
+    //Receive the response from the server
+    ReceivePort receiver = myIbis.createReceivePort(portType, myIbis.identifier().name());
+    receiver.enableConnections();
+
+    while(true){
+      ReadMessage r = receiver.receive();
+      i++;
+      Object o = r.readObject();
+      r.finish();
+      if(!o.getClass().getName().equals("rubiks.ipl.Cube")){
+        break;
+      }
+      Cube cube = (Cube)(o);
+      CubeCache cache = new CubeCache(cube.getSize());
+
+      int bound = 0;
+      int result = 0;
+      while (result == 0) {
+          System.out.println(myIbis.identifier() + " is at bound " + bound);
+          bound++;
+          if(checkBound(bound, pollingPort) == 0){
+            result = 0;
+            break;
+          }
+          cube.setBound(bound);
+
+          result = solutions(cube, cache, pollingPort);
+      }
+
+
+      Response response = new Response(myIbis.identifier(), result, bound);
+      w = sender.newMessage();
+      w.writeObject(response);
+      w.finish();
+    }
+    receiver.close();
+    sender.close();
+
+  }
+
+  private void run(String[] args) throws Exception {
+    //Create an ibis instance.
+    Ibis ibis = IbisFactory.createIbis(ibisCapabilities, null, portType);
+
+    //Elect a server.
+    IbisIdentifier server = ibis.registry().elect("Server"); 
+
+    //If I am the server, run server, else run client
+    if(server.equals(ibis.identifier())){
+      server(ibis,args);
+    } else {
+      client(ibis, server);
+    }
+    //End ibis.
+    ibis.end();
+  }
+
+
+    
+  public static void main(String[] args){
+    try{
+      new ClientServer().run(args);
+    }catch (Exception e){
+      e.printStackTrace(System.err);
+    }
+  }
+}

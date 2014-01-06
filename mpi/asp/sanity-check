@@ -1,0 +1,45 @@
+#!/bin/sh
+# compiles and tests an sor submission for validity
+
+REFERENCE_OUTPUT_FILE=KIC_SEQ_OUTPUT
+OUTPUT_FILE=kic.test.out
+ERROR_FILE=kic.test.err
+DIFF_FILE=kic.test.diff
+#number of vertices 
+N=$1 
+#number of processors/threads 
+P=$2
+#file to read 
+FILE=$3 
+
+RESULTS=results_mpi
+
+echo "checking for correct output"
+
+echo "running sequential on $Nx$N" 
+prun -v -np 1 ./asp-seq $N -print 1>$REFERENCE_OUTPUT_FILE
+
+echo "running parallel on $Nx$N on $P processors" >> $RESULTS
+prun -v -np $P -sge-script $PRUN_ETC/prun-openmpi ./asp-par $N -print 1>$OUTPUT_FILE 2>$ERROR_FILE
+
+if grep "took" $ERROR_FILE > /dev/null ;
+then
+    true ;
+else
+    echo "*** App did not print run time to stderr, please correct" >> $RESULTS
+    echo "stderr printout:" >> $RESULTS
+    cat $ERROR_FILE >> $RESULTS
+    exit ;
+fi
+
+diff $REFERENCE_OUTPUT_FILE $OUTPUT_FILE > $DIFF_FILE
+
+if test -s $DIFF_FILE;
+then
+    echo "*** Sor generated wrong output for N="$N" and P="$P"!" >> $RESULTS
+    echo "Diff between correct and found output:" >> $RESULTS
+    cat $DIFF_FILE >> $RESULTS
+else
+    echo "Sor output ok for N="$N" and P="$P"."  >> $RESULTS
+fi
+~   

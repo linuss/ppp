@@ -1,0 +1,4 @@
+Reservation number 553853: Reserved 2 hosts for 900 seconds 
+Run on 2 hosts for 960 seconds from Tue Feb 12 16:14:40 2013
+: node019/0 node014/0 
+execve(/usr/local/sitedep/reserve.sge/sge-script, ...) failed: No such file or directory

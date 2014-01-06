@@ -1,0 +1,11 @@
+
+A brief description of what you will find in each directory and/or what you are expected to put in.
+
+1) bin: all the executables must be put in this directory.
+2) cuda: all the CUDA source code must be put in this directory.
+3) examples: CUDA and OpenCL examples.
+4) include: the includes of the used libraries, leave this directory as it is.
+5) opencl: all the OpenCL source code must be put in this directory.
+6) report: your report must be placed here.
+7) sequential: the reference implementation.
+8) src: the source of the used libraries, leave this directory as it is.

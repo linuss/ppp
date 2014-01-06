@@ -1,0 +1,17 @@
+#!/bin/sh
+# compiles and tests an sor submission for validity
+
+
+RESULTS_SEQ=results_seq
+
+if [ $1 = "-file" ]
+then 
+FILE=$2
+echo "running sequential from $FILE:"
+prun -v -np 1 ./asp-seq -read $FILE -print 1>$RESULTS_SEQ
+else
+N=$2
+oriented=$3
+echo "running sequential with random generation for $Nx$N"
+prun -v -np 1 ./asp-seq -random $N $oriented -print 1>$RESULTS_SEQ
+fi

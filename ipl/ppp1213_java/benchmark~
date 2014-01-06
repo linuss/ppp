@@ -1,0 +1,10 @@
+params: size = 3, twists = 11, seed = 5
+
+nodes   time
+1       10034
+2       12470
+4       15180
+8       8877
+16      4319
+
+sequential: 9997 

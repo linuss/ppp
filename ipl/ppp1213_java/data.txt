@@ -1,0 +1,252 @@
+Searching for solution for cube of size 3, twists = 11, seed = 42
+Cube of size 3, solved = false
+          Y  O  W 
+          O  B  B 
+          W  W  W 
+ G  Y  B  O  G  G  R  Y  R  B  W  R 
+ G  W  O  G  R  W  B  Y  R  B  O  R 
+ O  W  O  G  R  R  B  Y  G  O  O  B 
+          Y  Y  Y 
+          R  G  G 
+          Y  B  W 
+Searching for solution for cube of size 3, twists = 11, seed = 0
+Cube of size 3, solved = false
+          Y  R  R 
+          G  G  W 
+          W  W  G 
+ O  W  B  O  O  R  W  B  B  W  W  G 
+ R  O  O  G  Y  R  Y  R  O  B  W  G 
+ O  G  G  R  Y  W  G  R  R  B  B  B 
+          Y  O  O 
+          Y  B  B 
+          Y  Y  Y 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 2 ways of 7 steps
+Searching for solution for cube of size 3, twists = 11, seed = 0
+Cube of size 3, solved = false
+          Y  R  R 
+          G  G  W 
+          W  W  G 
+ O  W  B  O  O  R  W  B  B  W  W  G 
+ R  O  O  G  Y  R  Y  R  O  B  W  G 
+ O  G  G  R  Y  W  G  R  R  B  B  B 
+          Y  O  O 
+          Y  B  B 
+          Y  Y  Y 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 2 ways of 7 steps
+Searching for solution for cube of size 3, twists = 11, seed = 0
+Cube of size 3, solved = false
+          Y  R  R 
+          G  G  W 
+          W  W  G 
+ O  W  B  O  O  R  W  B  B  W  W  G 
+ R  O  O  G  Y  R  Y  R  O  B  W  G 
+ O  G  G  R  Y  W  G  R  R  B  B  B 
+          Y  O  O 
+          Y  B  B 
+          Y  Y  Y 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 2 ways of 7 steps
+Searching for solution for cube of size 3, twists = 11, seed = 0
+Cube of size 3, solved = false
+          Y  R  R 
+          G  G  W 
+          W  W  G 
+ O  W  B  O  O  R  W  B  B  W  W  G 
+ R  O  O  G  Y  R  Y  R  O  B  W  G 
+ O  G  G  R  Y  W  G  R  R  B  B  B 
+          Y  O  O 
+          Y  B  B 
+          Y  Y  Y 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 2 ways of 7 steps
+Searching for solution for cube of size 3, twists = 11, seed = 0
+Cube of size 3, solved = false
+          Y  R  R 
+          G  G  W 
+          W  W  G 
+ O  W  B  O  O  R  W  B  B  W  W  G 
+ R  O  O  G  Y  R  Y  R  O  B  W  G 
+ O  G  G  R  Y  W  G  R  R  B  B  B 
+          Y  O  O 
+          Y  B  B 
+          Y  Y  Y 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 2 ways of 7 steps
+Searching for solution for cube of size 3, twists = 11, seed = 42
+Cube of size 3, solved = false
+          Y  O  W 
+          O  B  B 
+          W  W  W 
+ G  Y  B  O  G  G  R  Y  R  B  W  R 
+ G  W  O  G  R  W  B  Y  R  B  O  R 
+ O  W  O  G  R  R  B  Y  G  O  O  B 
+          Y  Y  Y 
+          R  G  G 
+          Y  B  W 
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 9, seed = 42
+Cube of size 3, solved = false
+          Y  Y  Y 
+          O  G  G 
+          W  B  W 
+ G  Y  B  O  O  O  G  Y  B  R  R  R 
+ G  W  O  G  O  B  R  Y  B  W  R  R 
+ O  W  O  G  W  B  R  Y  R  G  G  B 
+          Y  O  W 
+          R  B  B 
+          Y  W  W 
+Bound now: 1 2 3 4 5 6 7
+Solving cube possible in 4 ways of 7 steps
+Searching for solution for cube of size 3, twists = 10, seed = 42
+Cube of size 3, solved = false
+          Y  G  G 
+          O  R  W 
+          W  R  R 
+ G  Y  B  O  Y  Y  B  B  R  W  W  R 
+ G  W  O  G  G  G  Y  Y  Y  B  B  R 
+ O  W  O  G  B  W  G  R  R  W  O  B 
+          Y  O  O 
+          R  O  B 
+          Y  W  B 
+Searching for solution for cube of size 3, twists = 10, seed = 42
+Cube of size 3, solved = false
+          Y  G  G 
+          O  R  W 
+          W  R  R 
+ G  Y  B  O  Y  Y  B  B  R  W  W  R 
+ G  W  O  G  G  G  Y  Y  Y  B  B  R 
+ O  W  O  G  B  W  G  R  R  W  O  B 
+          Y  O  O 
+          R  O  B 
+          Y  W  B 
+Bound now: 1 2 3 4 5 6 7 8
+Solving cube possible in 4 ways of 8 steps
+Searching for solution for cube of size 3, twists = 10, seed = 42
+Cube of size 3, solved = false
+          Y  G  G 
+          O  R  W 
+          W  R  R 
+ G  Y  B  O  Y  Y  B  B  R  W  W  R 
+ G  W  O  G  G  G  Y  Y  Y  B  B  R 
+ O  W  O  G  B  W  G  R  R  W  O  B 
+          Y  O  O 
+          R  O  B 
+          Y  W  B 

@@ -1,0 +1,19 @@
+running parallel on 1000 on 4 processors
+*** App did not print run time to stderr, please correct
+stderr printout:
+Prun fatal error: Command "./asp-par" not found in "." or PATH /cm/shared/apps/gcc/4.4.6/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/sbin:/usr/sbin:/home/alvarban/bin:/cm/shared/apps/sge/6.2u5p2/bin/lx26-amd64:/cm/shared/package/reserve.sge/bin:/cm/shared/apps/openmpi/gcc/64/1.4.4/bin
+
+running parallel on 1000 on 4 processors
+*** App did not print run time to stderr, please correct
+stderr printout:
+Prun fatal error: Command "./asp-par" not found in "." or PATH /cm/shared/apps/gcc/4.4.6/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/sbin:/usr/sbin:/home/alvarban/bin:/cm/shared/apps/sge/6.2u5p2/bin/lx26-amd64:/cm/shared/package/reserve.sge/bin:/cm/shared/apps/openmpi/gcc/64/1.4.4/bin
+
+running parallel on 32 on 1 processors
+*** App did not print run time to stderr, please correct
+stderr printout:
+Prun fatal error: Command "./asp-par" not found in "." or PATH /cm/shared/apps/gcc/4.4.6/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/sbin:/usr/sbin:/home/alvarban/bin:/cm/shared/apps/sge/6.2u5p2/bin/lx26-amd64:/cm/shared/package/reserve.sge/bin:/cm/shared/apps/openmpi/gcc/64/1.4.4/bin
+
+running parallel on  on  processors
+*** App did not print run time to stderr, please correct
+stderr printout:
+Prun fatal error: cannot convert to int: -sge-script

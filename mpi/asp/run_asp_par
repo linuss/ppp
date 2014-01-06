@@ -1,0 +1,21 @@
+#!/bin/sh
+# compiles and tests an sor submission for validity
+
+RESULTS_PAR=results_par
+
+if [ $1 = "-file" ]
+then
+FILE=$2
+P=$3
+echo "running parallel from $FILE on $P processors:"
+#prun -v -np 1 ./asp-seq -read $FILE -print 1>$RESULTS_PAR
+prun -v -np $P -sge-script $PRUN_ETC/prun-openmpi ./asp-par -read $FILE -print 1>$RESULTS_PAR
+else
+N=$2
+oriented=$3
+P=$4
+echo "running parallel with random generation for $Nx$N on $P processors:"
+#prun -v -np 1 ./asp-seq -random $N $oriented $P -print 1>$RESULTS_PAR
+prun -v -np $P -sge-script $PRUN_ETC/prun-openmpi ./asp-par -random $N $oriented -print 1>$RESULTS_PAR
+fi
+
