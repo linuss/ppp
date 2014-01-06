@@ -14,6 +14,7 @@ __global__ void darkenImage(const unsigned char * inputImage,
     unsigned char * outputImage, const int width, const int height){
   int x = threadIdx.x;
   int y = threadIdx.y;
+
   float grayPix = 0.0f;
 
   float r = 
@@ -34,12 +35,36 @@ __global__ void darkenImage(const unsigned char * inputImage,
 void darkGray(const int width, const int height, 
     const unsigned char * inputImage, unsigned char * darkGrayImage) {
 	NSTimer kernelTime = NSTimer("darker", false, false);
+
+
+  
+  //Allocate vectors in device memory
+  int color_image_size = width*height*3;
+  int bw_image_size = width*height;
+  unsigned char * d_input;
+  cudaMalloc(&d_input, color_image_size);
+  unsigned char * d_output;
+  cudaMalloc(&d_output, bw_image_size);
+
+  //Copy vector from host memory to device memory
+  cudaMemcpy(d_input, inputImage, color_image_size , cudaMemcpyHostToDevice);
+  cudaMemcpy(d_output, darkGrayImage, bw_image_size , cudaMemcpyHostToDevice);
+
+
+
+
   int numBlocks = 1;
   dim3 threadsPerBlock(width,height);
 	kernelTime.start();
-  darkenImage<<<numBlocks, threadsPerBlock>>>(inputImage, darkGrayImage, width,
+  darkenImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width,
       height);
 	kernelTime.stop();
+
+  //Copy vector from device memory to host memory
+  cudaMemcpy(darkGrayImage, d_output, bw_image_size, cudaMemcpyDeviceToHost);
+
+  cudaFree(d_input);
+  cudaFree(d_output);
 	
 	// Time GFLOP/s GB/s
 	cout << fixed << setprecision(6) << kernelTime.getElapsed() << 
