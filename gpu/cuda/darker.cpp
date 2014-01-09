@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 	darkGray(inputImage.width(), inputImage.height(), inputImage.data(), darkGrayImage.data());
 
 	// Save output
-	darkGrayImage.save(("./" + string(argv[1]) + ".dark.seq.bmp").c_str());
+	darkGrayImage.save(("./" + string(argv[1]) + ".dark.cuda.bmp").c_str());
 
 	return 0;
 }
