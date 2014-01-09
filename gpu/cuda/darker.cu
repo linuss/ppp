@@ -10,10 +10,28 @@ using std::endl;
 using std::fixed;
 using std::setprecision;
 
-const unsigned int nrThreads = 256;
+const unsigned int nrThreads = 1024;
 
 __global__ void darkenImage(const unsigned char * inputImage, 
     unsigned char * outputImage, const int width, const int height){
+
+  int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+  if(x < (width * height)){
+
+    float grayPix = 0.0f;
+
+    float r = static_cast< float >(inputImage[x]);
+    float g = static_cast< float >(inputImage[(height*width) + x]);
+    float b = static_cast< float >(inputImage[2*(height*width) + x]);
+
+    grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
+    grayPix = (grayPix * 0.6f) + 0.5f;
+
+    outputImage[x] = static_cast< unsigned char >(grayPix);
+
+
+  /*
   int x = (blockIdx.x * blockDim.x) + threadIdx.x;
   int y = (blockIdx.y * blockDim.y) + threadIdx.y;
   if(x < width && y < height){
@@ -29,8 +47,10 @@ __global__ void darkenImage(const unsigned char * inputImage,
 
     grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
     grayPix = (grayPix * 0.6f) + 0.5f;
+    
 
     outputImage[(y * width) + x] = static_cast< unsigned char >(grayPix);
+    */
   }
 }
 
@@ -71,8 +91,8 @@ void darkGray(const int width, const int height,
     exit(1);
   }
 
-  dim3 threadsPerBlock(32,32);
-  dim3 numBlocks(color_image_size/threadsPerBlock.x, color_image_size/threadsPerBlock.y);
+  dim3 threadsPerBlock(nrThreads);
+  dim3 numBlocks(bw_image_size/nrThreads);
 
 	kernelTime.start();
   darkenImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width,
