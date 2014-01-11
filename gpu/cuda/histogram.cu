@@ -87,21 +87,6 @@ void histogram1D(const int width, const int height, const unsigned char * inputI
   createHistogram<<<numBlocks, threadsPerBlock>>>(d_input, d_output, d_histogram,
       width*height);
   cudaDeviceSynchronize();
-  /*
-	for ( int y = 0; y < height; y++ ) {
-		for ( int x = 0; x < width; x++ ) {
-			float grayPix = 0.0f;
-			float r = static_cast< float >(inputImage[(y * width) + x]);
-			float g = static_cast< float >(inputImage[(width * height) + (y * width) + x]);
-			float b = static_cast< float >(inputImage[(2 * width * height) + (y * width) + x]);
-
-			grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b)) + 0.5f;
-
-			grayImage[(y * width) + x] = static_cast< unsigned char >(grayPix);
-			histogram[static_cast< unsigned int >(grayPix)] += 1;
-		}
-	}
-  */
 	// /Kernel
 	kernelTime.stop();
 	
