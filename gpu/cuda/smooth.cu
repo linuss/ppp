@@ -13,13 +13,14 @@ using std::setprecision;
 
 
 const unsigned int nrThreads = 1024;
+const unsigned int MAX_BLOCKS = 65535;
 
 __global__ void createFilterImage(unsigned char * inputImage, unsigned char* smoothImage,
-    float * filter, const int width, const int height, const int spectrum){
+    float * filter, const int width, const int height, const int spectrum, int iteration){
   
   //Convert one-dimensional coordinate to two dimensions
-  int x = ((blockIdx.x * blockDim.x) + threadIdx.x)/width;
-  int y = ((blockIdx.x * blockDim.x) + threadIdx.x)%width;
+  int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS)))/width;
+  int y = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS)))%width;
 
   if(x < width && y < height){
 
@@ -107,15 +108,23 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
   }
 
   dim3 threadsPerBlock(nrThreads);
-  dim3 numBlocks(img_size/nrThreads);
+  int numBlocks(img_size/nrThreads);
 
 
-	kernelTime.start();
+  kernelTime.start();
 	// Kernel
+  if(numBlocks > MAX_BLOCKS){
 
-  createFilterImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, d_filter,
-    width, height, spectrum);
-  cudaDeviceSynchronize();
+    for(int i = 0 ; i < numBlocks/MAX_BLOCKS + 1 ; i++){
+      createFilterImage<<<MAX_BLOCKS, threadsPerBlock>>>(d_input, d_output, d_filter,
+        width, height, spectrum, i);
+      cudaDeviceSynchronize();
+    }
+  }else{
+    createFilterImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, d_filter,
+      width, height, spectrum, 0);
+    cudaDeviceSynchronize();
+  }
 
   /*
 	for ( int y = 0; y < height; y++ ) {
