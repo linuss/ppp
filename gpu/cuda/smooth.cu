@@ -115,7 +115,6 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
 	// Kernel
   if(numBlocks > MAX_BLOCKS){
 
-    printf("Numblocks: %d, Numblocks/MAX_BLOCKS: %d\n", numBlocks, (numBlocks/MAX_BLOCKS));
 
     for(int i = 0 ; i <= numBlocks/MAX_BLOCKS   ; i++){
       createFilterImage<<<MAX_BLOCKS, threadsPerBlock>>>(d_input, d_output, d_filter,
