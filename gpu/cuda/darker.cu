@@ -19,11 +19,11 @@ __global__ void darkenImage(const unsigned char * inputImage,
 
   if(x < (width * height)){
 
-    float grayPix = 0.0f;
+    double grayPix = 0.0f;
 
-    float r = static_cast< float >(inputImage[x]);
-    float g = static_cast< float >(inputImage[(height*width) + x]);
-    float b = static_cast< float >(inputImage[2*(height*width) + x]);
+    double r = static_cast< double >(inputImage[x]);
+    double g = static_cast< double >(inputImage[(height*width) + x]);
+    double b = static_cast< double >(inputImage[2*(height*width) + x]);
 
     grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
     grayPix = (grayPix * 0.6f) + 0.5f;
@@ -31,26 +31,6 @@ __global__ void darkenImage(const unsigned char * inputImage,
     outputImage[x] = static_cast< unsigned char >(grayPix);
 
 
-  /*
-  int x = (blockIdx.x * blockDim.x) + threadIdx.x;
-  int y = (blockIdx.y * blockDim.y) + threadIdx.y;
-  if(x < width && y < height){
-
-    float grayPix = 0.0f;
-
-    float r = 
-      static_cast< float >(inputImage[(y * width) + x]);
-    float g = 
-      static_cast< float >(inputImage[(width * height) + (y * width) + x]);
-    float b = 
-      static_cast< float >(inputImage[(2 * width * height) + (y * width) + x]);
-
-    grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
-    grayPix = (grayPix * 0.6f) + 0.5f;
-    
-
-    outputImage[(y * width) + x] = static_cast< unsigned char >(grayPix);
-    */
   }
 }
 
@@ -92,8 +72,13 @@ void darkGray(const int width, const int height,
     exit(1);
   }
 
-  dim3 threadsPerBlock(nrThreads);
-  dim3 numBlocks(bw_image_size/nrThreads);
+  int threadsPerBlock(nrThreads);
+  int numBlocks((bw_image_size/nrThreads) );
+
+  if(bw_image_size%nrThreads != 0){
+    numBlocks++;
+  }
+
 
 	kernelTime.start();
   darkenImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, width,

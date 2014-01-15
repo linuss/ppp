@@ -17,7 +17,7 @@ __global__ void createHistogram(const unsigned char * inputImage,
 
   int x = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-  if(x < (img_size)){
+  if(x <= (img_size)){
 
     float grayPix = 0.0f;
 
