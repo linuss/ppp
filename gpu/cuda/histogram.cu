@@ -11,23 +11,26 @@ using std::fixed;
 using std::setprecision;
 
 const unsigned int nrThreads = 1024;
+const unsigned int MAX_BLOCKS = 65534;
 
 __global__ void createHistogram(const unsigned char * inputImage, 
-    unsigned char * outputImage, unsigned int * histogram, const int img_size){
+    unsigned char * outputImage, unsigned int * histogram, const int width, const int height, int iteration){
 
-  int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+  //Convert one-dimensional coordinate to two dimensions
+  int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))/width;
+  int y = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))%width;
 
-  if(x <= (img_size)){
+  if(x < width && y < height){
 
     float grayPix = 0.0f;
 
-    float r = static_cast< float >(inputImage[x]);
-    float g = static_cast< float >(inputImage[(img_size) + x]);
-    float b = static_cast< float >(inputImage[2*(img_size) + x]);
+    float r = static_cast< float >(inputImage[(y * width) + x]);
+    float g = static_cast< float >(inputImage[(width * height) + (y * width) + x]);
+    float b = static_cast< float >(inputImage[(2 * width * height) + (y * width) + x]);
 
-	  grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b)) + 0.5f;
+    grayPix = __fadd_rn(__fadd_rn(__fadd_rn(__fmul_rn(0.3f, r),__fmul_rn(0.59f, g)), __fmul_rn(0.11f, b)), 0.5f);
 
-    outputImage[x] = static_cast< unsigned char >(grayPix);
+    outputImage[(y*width) + x] = static_cast< unsigned char >(grayPix);
     atomicAdd(&histogram[static_cast< unsigned int >(grayPix)], 1);
   }
 }
@@ -78,15 +81,28 @@ void histogram1D(const int width, const int height, const unsigned char * inputI
     exit(1);
   }
 
-  dim3 threadsPerBlock(nrThreads);
-  dim3 numBlocks(bw_image_size/nrThreads);
+  int threadsPerBlock(nrThreads);
+  int numBlocks(bw_image_size/nrThreads);
+
+  if(bw_image_size%nrThreads != 0){
+    numBlocks++;
+  }
 
 	
 	kernelTime.start();
 	// Kernel
-  createHistogram<<<numBlocks, threadsPerBlock>>>(d_input, d_output, d_histogram,
-      width*height);
-  cudaDeviceSynchronize();
+  if(numBlocks > MAX_BLOCKS){
+    for(int i = 0;i<=numBlocks/MAX_BLOCKS ; i++){
+      createHistogram<<<MAX_BLOCKS, threadsPerBlock>>>(d_input, d_output, d_histogram,
+          width,height,i);
+      cudaDeviceSynchronize();
+    }
+  }else{
+    createHistogram<<<MAX_BLOCKS, threadsPerBlock>>>(d_input, d_output, d_histogram,
+        width,height,0);
+    cudaDeviceSynchronize();
+  }
+
 	// /Kernel
 	kernelTime.stop();
 	
