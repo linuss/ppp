@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	triangularSmooth(inputImage.width(), inputImage.height(), inputImage.spectrum(), inputImage.data(), smoothImage.data());
 
 	// Save output
-	smoothImage.save(("./" + string(argv[1]) + ".smooth.seq.bmp").c_str());
+	smoothImage.save(("./" + string(argv[1]) + ".smooth.cuda.bmp").c_str());
 
 	return 0;
 }
