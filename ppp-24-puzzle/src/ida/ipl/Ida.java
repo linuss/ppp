@@ -9,12 +9,12 @@ import java.io.IOException;
 
 final class Ida {
 
-  IbisCapabilities ibisCapabilities;
-  PortType receivePort;
-  PortType clientPort;
-  PortType sendPort;
+  static IbisCapabilities ibisCapabilities;
+  static PortType receivePort;
+  static PortType clientPort;
+  static PortType sendPort;
 
-  private class Message{
+  private static class Message{
     IbisIdentifier id;
     int steps;
 
@@ -107,7 +107,7 @@ final class Ida {
 
 	}
 
-  private void server(Ibis ibis, String[] args) throws Exception {
+  private static void server(Ibis ibis, String[] args) throws Exception {
     String fileName = null;
 		boolean cache = true;
 		/* Use suitable default value. */
@@ -198,7 +198,7 @@ final class Ida {
     
   }
   
-  private void client(Ibis ibis, IbisIdentifier server) throws Exception {
+  private static void client(Ibis ibis, IbisIdentifier server) throws Exception {
     Board board;
     int steps = 0;
 
@@ -231,7 +231,7 @@ final class Ida {
     sender.close();
   }
 
-	public void main(String[] args) {
+	public static void main(String[] args) {
     Ibis ibis = null;
     IbisIdentifier server = null;
 
