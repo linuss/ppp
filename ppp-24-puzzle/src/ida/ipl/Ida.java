@@ -4,25 +4,42 @@ import ibis.ipl.*;
 import java.util.LinkedList;
 import java.util.Arrays;
 import java.io.IOException;
+import java.io.Serializable;
 
 
 
-final class Ida {
+final class Ida implements MessageUpcall {
+  static PortType receivePort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.CONNECTION_MANY_TO_ONE, PortType.RECEIVE_EXPLICIT);
+  static PortType sendPort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_EXPLICIT, PortType.CONNECTION_ONE_TO_ONE);
+  static PortType clientSendPort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_EXPLICIT, PortType.CONNECTION_MANY_TO_ONE);
+  static PortType clientReceivePort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_EXPLICIT, PortType.CONNECTION_ONE_TO_ONE);
+  static PortType broadcastport = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_DATA, PortType.RECEIVE_AUTO_UPCALLS, PortType.CONNECTION_ONE_TO_MANY);
+  static IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT, IbisCapabilities.CLOSED_WORLD);
+  int globalBound = Integer.MAX_VALUE;
 
-  static IbisCapabilities ibisCapabilities;
-  static PortType receivePort;
-  static PortType clientPort;
-  static PortType sendPort;
-
-  private static class Message{
+  private static class Message implements Serializable{
     IbisIdentifier id;
     int steps;
+    int solutions;
+
+    Message(IbisIdentifier id, int steps, int solutions){
+      this.id = id;
+      this.steps = steps;
+      this.solutions = solutions;
+    }
 
     Message(IbisIdentifier id, int steps){
       this.id = id;
       this.steps = steps;
+      this.solutions = 0;
     }
   }
+
+  public void upcall(ReadMessage message) throws IOException{
+    globalBound = message.readInt();
+  }
+    
+
 
 
 	/**
@@ -74,7 +91,7 @@ final class Ida {
 		return result;
 	}
 
-	private static int solve(Board board, boolean useCache) {
+	private Message solve(Board board, boolean useCache, Ibis ibis) {
 		BoardCache cache = null;
 		if (useCache) {
 			cache = new BoardCache();
@@ -98,14 +115,26 @@ final class Ida {
 			}
 
 			bound += 2;
-		} while (solutions == 0);
+		} while (solutions == 0 && bound <= globalBound);
 
 		System.out.println("\nresult is " + solutions + " solutions of "
-				+ board.bound() + " steps");
+				+ board.depth() + " steps");
 
-    return board.bound();
+    Message result = new Message(ibis.identifier(), board.depth(), solutions);
+
+    return result;
 
 	}
+
+  private static void broadcastBound(SendPort broadcaster, int bound) throws Exception{
+    WriteMessage m = broadcaster.newMessage();
+    m.writeInt(bound);
+    m.finish();
+  }
+
+      
+
+
 
   private static void server(Ibis ibis, String[] args) throws Exception {
     String fileName = null;
@@ -113,12 +142,12 @@ final class Ida {
 		/* Use suitable default value. */
 		int length = 103;
     int counter = 0;
+    int bound = Integer.MAX_VALUE;
 
 
     int numberOfNodes = ibis.registry().getPoolSize();
     LinkedList<Board> workQueue;
     LinkedList<IbisIdentifier> nodes = new LinkedList<IbisIdentifier>();
-    LinkedList<Integer> responses = new LinkedList<Integer>();
     int[] solutions;
 
 		for (int i = 0; i < args.length; i++) {
@@ -153,39 +182,66 @@ final class Ida {
 
     //Create work queue
     workQueue = new LinkedList<Board>(Arrays.asList(initialBoard.makeMoves()));
+    System.out.printf("There are %d boards in the workqueue\n", workQueue.size());
     solutions = new int[workQueue.size()];
 
-    ReceivePort receiver = ibis.createReceivePort(receivePort, "server");
+    ReceivePort receiver = null;
+    try{
+      receiver = ibis.createReceivePort(receivePort, "server");
+    }catch (Exception e){
+      System.out.println(e.toString());
+      System.exit(1);
+    }
     receiver.enableConnections();
-    SendPort sender = ibis.createSendPort(sendPort);
+    System.out.printf("Server listening\n");
+    SendPort sender = null;
+
+    SendPort broadcaster = ibis.createSendPort(broadcastport);
 
     while(!workQueue.isEmpty()){
+      ReadMessage r = receiver.receive();
+      Message m = (Message)(r.readObject());
+      r.finish();
+      if(!nodes.contains(m.id)){
+        nodes.add(m.id);
+        broadcaster.connect(m.id, "broadcastport");
+      }
+      System.out.println("Server received message from " + m.id + m.id.name());
+      if(m.steps >= 0){
+        solutions[counter] = m.steps;
+        counter++;
+        if(m.steps < bound){
+          bound = m.steps;
+          broadcastBound(broadcaster, bound);
+        }
+      }
+      System.out.println("Server tries to connect to sender");
+      sender = ibis.createSendPort(sendPort);
+      sender.connect(m.id, "receivePort");
+      System.out.printf("Server connected to sender!\n");
+      WriteMessage w = sender.newMessage();
+      w.writeObject(workQueue.pop());
+      w.finish();
+      sender.close();
+      System.out.printf("Server sent object to sender\n");
+    }
+
+    //When all boards have been solved, send null
+    for(int i=0;i<numberOfNodes-1;i++){
       ReadMessage r = receiver.receive();
       Message m = (Message)(r.readObject());
       if(m.steps >= 0){
         solutions[counter] = m.steps;
         counter++;
       }
+      sender = ibis.createSendPort(sendPort);
       sender.connect(m.id, m.id.name());
       WriteMessage w = sender.newMessage();
-      w.writeObject(workQueue.pop());
+      w.writeObject(null);
       w.finish();
     }
 
-    //When all boards have been solved, send null
-    ReadMessage r = receiver.receive();
-    Message m = (Message)(r.readObject());
-    if(m.steps >= 0){
-      solutions[counter] = m.steps;
-      counter++;
-    }
-    sender.connect(m.id, m.id.name());
-    WriteMessage w = sender.newMessage();
-    w.writeObject(null);
-    w.finish();
-
     receiver.close();
-    sender.close();
 
     int min = Integer.MAX_VALUE;
     for(int i = 0;i<solutions.length;i++){
@@ -195,60 +251,63 @@ final class Ida {
     }
 
 		System.out.println("\nresult is" + min  + " steps");
+    ibis.end();
     
   }
   
-  private static void client(Ibis ibis, IbisIdentifier server) throws Exception {
+  private void client(Ibis ibis, IbisIdentifier server) throws Exception {
     Board board;
-    int steps = 0;
+    Message response;
 
-    SendPort sender  = ibis.createSendPort(clientPort);
+    SendPort sender  = ibis.createSendPort(clientSendPort);
     sender.connect(server, "server");
+    System.out.println("Client created sendport, and connected to server");
 
-    ReceivePort reciever = ibis.createReceivePort(clientPort, "receivePort");
+    ReceivePort reciever = ibis.createReceivePort(clientReceivePort, "receivePort");
     reciever.enableConnections();
+    System.out.println("Client created receiveport");
+
+    ReceivePort receiveBroadcast = ibis.createReceivePort(broadcastport, "broadcastport", this);
+    receiveBroadcast.enableConnections();
 
     
     //Send id to server, asking for work
     WriteMessage w = sender.newMessage();
     w.writeObject(new Message(ibis.identifier(), -1));
     w.finish();
+    System.out.println("client sent message to server");
     //wait for response
+    System.out.println("client is waiting for response from server");
     ReadMessage r = reciever.receive();
+    System.out.println("client has received response!");
     board = (Board)(r.readObject());
+    r.finish();
 
     while(board != null){
-      steps = solve(board,true);
+      response = solve(board,true, ibis);
       w = sender.newMessage();
-      w.writeObject(new Message(ibis.identifier(), steps));
+      w.writeObject(response);
       w.finish();
       //wait for response
       r = reciever.receive();
       board = (Board)(r.readObject());
+      r.finish();
     }
 
     reciever.close();
     sender.close();
+    ibis.end();
   }
 
-	public static void main(String[] args) {
+  public void start(String[] args){
     Ibis ibis = null;
     IbisIdentifier server = null;
-
-    /* Set Ibis Settings*/
-    IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT, IbisCapabilities.CLOSED_WORLD);
-    PortType sendPort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_POLL, PortType.CONNECTION_ONE_TO_MANY);
-
-    PortType receivePort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_POLL, PortType.CONNECTION_ONE_TO_MANY);
-
-    PortType clientPort = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_POLL, PortType.CONNECTION_ONE_TO_ONE);
-
 
 
 
     //Create an Ibis instance
     try{
-      ibis = IbisFactory.createIbis(ibisCapabilities, null, sendPort, receivePort, clientPort);
+      ibis = IbisFactory.createIbis(ibisCapabilities, null, sendPort, receivePort, clientReceivePort, clientSendPort, broadcastport);
     }catch (IbisCreationFailedException e){
       System.out.println("Failed to create Ibis!\n" + e.getMessage());
       System.exit(1);
@@ -285,5 +344,9 @@ final class Ida {
         System.exit(1);
       }
     }
+  }
+
+	public static void main(String[] args) {
+    new Ida().start(args);
 	}
 }
