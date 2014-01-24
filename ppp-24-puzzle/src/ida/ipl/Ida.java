@@ -16,6 +16,7 @@ final class Ida implements MessageUpcall {
   static PortType broadcastport = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_DATA, PortType.RECEIVE_AUTO_UPCALLS, PortType.CONNECTION_ONE_TO_MANY);
   static IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT, IbisCapabilities.CLOSED_WORLD);
   int globalBound = Integer.MAX_VALUE;
+  Ibis ibis;
 
   private static class Message implements Serializable{
     IbisIdentifier id;
@@ -36,7 +37,14 @@ final class Ida implements MessageUpcall {
   }
 
   public void upcall(ReadMessage message) throws IOException{
-    globalBound = message.readInt();
+    System.out.printf("Received upcall!\n");
+    int messageBound = message.readInt();
+    if(messageBound < 0){
+      ibis.end();
+    }else{
+      globalBound = messageBound;
+      System.out.printf("globalBound after upcall = %d\n", globalBound);
+    }
   }
     
 
@@ -46,7 +54,7 @@ final class Ida implements MessageUpcall {
 	 * expands this board into all possible positions, and returns the number of
 	 * solutions. Will cut off at the bound set in the board.
 	 */
-	private static int solutions(Board board, BoardCache cache) {
+	private int solutions(Board board, BoardCache cache) {
 		if (board.distance() == 0) {
 			return 1;
 		}
@@ -54,6 +62,10 @@ final class Ida implements MessageUpcall {
 		if (board.distance() > board.bound()) {
 			return 0;
 		}
+
+    if (board.bound() > globalBound){
+      return 0;
+    }
 
 		Board[] children = board.makeMoves(cache);
 		int result = 0;
@@ -71,7 +83,7 @@ final class Ida implements MessageUpcall {
 	 * expands this board into all possible positions, and returns the number of
 	 * solutions. Will cut off at the bound set in the board.
 	 */
-	private static int solutions(Board board) {
+	private int solutions(Board board) {
 		if (board.distance() == 0) {
 			return 1;
 		}
@@ -79,6 +91,10 @@ final class Ida implements MessageUpcall {
 		if (board.distance() > board.bound()) {
 			return 0;
 		}
+
+    if(board.bound() > globalBound){
+      return 0;
+    }
 
 		Board[] children = board.makeMoves();
 		int result = 0;
@@ -97,6 +113,7 @@ final class Ida implements MessageUpcall {
 			cache = new BoardCache();
 		}
 		int bound = board.distance();
+    int initialDepth = board.depth();
 		int solutions;
 
 		System.out.print("Try bound ");
@@ -118,9 +135,9 @@ final class Ida implements MessageUpcall {
 		} while (solutions == 0 && bound <= globalBound);
 
 		System.out.println("\nresult is " + solutions + " solutions of "
-				+ board.depth() + " steps");
+				+ (board.bound() + initialDepth) + " steps");
 
-    Message result = new Message(ibis.identifier(), board.depth(), solutions);
+    Message result = new Message(ibis.identifier(), (board.bound() + initialDepth), solutions);
 
     return result;
 
@@ -148,7 +165,7 @@ final class Ida implements MessageUpcall {
     int numberOfNodes = ibis.registry().getPoolSize();
     LinkedList<Board> workQueue;
     LinkedList<IbisIdentifier> nodes = new LinkedList<IbisIdentifier>();
-    int[] solutions;
+    Message solution = new Message(null,Integer.MAX_VALUE,0);
 
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("--file")) {
@@ -182,9 +199,18 @@ final class Ida implements MessageUpcall {
 
     //Create work queue
     workQueue = new LinkedList<Board>(Arrays.asList(initialBoard.makeMoves()));
-    System.out.printf("There are %d boards in the workqueue\n", workQueue.size());
-    solutions = new int[workQueue.size()];
+    while(workQueue.size() < numberOfNodes){
+      LinkedList<Board> workQueue2 = new LinkedList<Board>();
+      while(!workQueue.isEmpty()){
+        workQueue2.addAll(Arrays.asList(workQueue.pop().makeMoves()));
+      }
+      workQueue = workQueue2;
+    }
 
+    while(workQueue.remove(null)){}
+
+    System.out.printf("workQueue has %d boards in it\n", workQueue.size());
+    
     ReceivePort receiver = null;
     try{
       receiver = ibis.createReceivePort(receivePort, "server");
@@ -207,50 +233,53 @@ final class Ida implements MessageUpcall {
         broadcaster.connect(m.id, "broadcastport");
       }
       System.out.println("Server received message from " + m.id + m.id.name());
-      if(m.steps >= 0){
-        solutions[counter] = m.steps;
-        counter++;
+      if(m.steps < solution.steps &&  m.solutions > solution.solutions){
+        solution.steps = m.steps;
+        solution.solutions = m.solutions;
         if(m.steps < bound){
           bound = m.steps;
+          System.out.printf("Server is broadcasting new bound %d\n", bound);
           broadcastBound(broadcaster, bound);
         }
       }
-      System.out.println("Server tries to connect to sender");
+      System.out.println("Server tries to connect to " + m.id);
       sender = ibis.createSendPort(sendPort);
       sender.connect(m.id, "receivePort");
-      System.out.printf("Server connected to sender!\n");
+      System.out.println("Server connected to " + m.id);
       WriteMessage w = sender.newMessage();
       w.writeObject(workQueue.pop());
       w.finish();
       sender.close();
-      System.out.printf("Server sent object to sender\n");
+      System.out.println("Server sent object to " + m.id);
+      System.out.printf("%d boards remaining in queue\n", workQueue.size());
     }
 
     //When all boards have been solved, send null
+    System.out.println("All boards have been sent");
     for(int i=0;i<numberOfNodes-1;i++){
+      System.out.println("Server is waiting for message from client");
       ReadMessage r = receiver.receive();
+      System.out.println("Server has received a message!");
       Message m = (Message)(r.readObject());
-      if(m.steps >= 0){
-        solutions[counter] = m.steps;
-        counter++;
+      r.finish();
+      if(m.steps < solution.steps &&  m.solutions > solution.solutions){
+        solution.steps = m.steps;
+        solution.solutions = m.solutions;
       }
       sender = ibis.createSendPort(sendPort);
-      sender.connect(m.id, m.id.name());
+      sender.connect(m.id, "receivePort");
       WriteMessage w = sender.newMessage();
       w.writeObject(null);
       w.finish();
+      sender.close();
+      System.out.println("Server has sent null to " + m.id);
     }
+
 
     receiver.close();
 
-    int min = Integer.MAX_VALUE;
-    for(int i = 0;i<solutions.length;i++){
-      if(solutions[i] < min){
-        min = solutions[i];
-      }
-    }
-
-		System.out.println("\nresult is" + min  + " steps");
+		System.out.println("\nresult is" + solution.solutions  + "solutions of " + solution.steps  + " steps");
+    //broadcastBound(broadcaster,-1);
     ibis.end();
     
   }
@@ -269,6 +298,7 @@ final class Ida implements MessageUpcall {
 
     ReceivePort receiveBroadcast = ibis.createReceivePort(broadcastport, "broadcastport", this);
     receiveBroadcast.enableConnections();
+    receiveBroadcast.enableMessageUpcalls();
 
     
     //Send id to server, asking for work
@@ -288,11 +318,14 @@ final class Ida implements MessageUpcall {
       w = sender.newMessage();
       w.writeObject(response);
       w.finish();
+      System.out.println("client " +ibis.identifier() + " has sent a response to the server");
       //wait for response
+      System.out.println("client " +ibis.identifier() + " is waiting for a message from the server");
       r = reciever.receive();
       board = (Board)(r.readObject());
       r.finish();
     }
+    System.out.println(ibis.identifier() + " has received null. That's all folks!");
 
     reciever.close();
     sender.close();
@@ -300,7 +333,6 @@ final class Ida implements MessageUpcall {
   }
 
   public void start(String[] args){
-    Ibis ibis = null;
     IbisIdentifier server = null;
 
 

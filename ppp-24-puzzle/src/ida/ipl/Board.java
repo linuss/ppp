@@ -373,10 +373,12 @@ public final class Board implements Serializable {
 	 * sets the bound of this board.
 	 */
 	public void setBound(int bound) {
+    /*
 		if (depth != 0) {
 			System.err.println("warning: setting bound only makes sense at"
 					+ "the initial job");
 		}
+    */
 		this.bound = bound;
 	}
 
