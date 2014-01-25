@@ -16,6 +16,7 @@ final class Ida implements MessageUpcall {
   static PortType broadcastport = new PortType(PortType.COMMUNICATION_RELIABLE, PortType.SERIALIZATION_DATA, PortType.RECEIVE_AUTO_UPCALLS, PortType.CONNECTION_ONE_TO_MANY);
   static IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT, IbisCapabilities.CLOSED_WORLD);
   int globalBound = Integer.MAX_VALUE;
+  int bound = Integer.MAX_VALUE;
   Ibis ibis;
 
   private static class Message implements Serializable{
@@ -39,12 +40,9 @@ final class Ida implements MessageUpcall {
   public void upcall(ReadMessage message) throws IOException{
     System.out.printf("Received upcall!\n");
     int messageBound = message.readInt();
-    if(messageBound < 0){
-      ibis.end();
-    }else{
-      globalBound = messageBound;
-      System.out.printf("globalBound after upcall = %d\n", globalBound);
-    }
+    System.out.println("messageBound = " + messageBound + ", bound = " + bound + " at " +ibis.identifier()); 
+    globalBound = messageBound;
+    System.out.printf("globalBound after upcall = %d\n", globalBound);
   }
     
 
@@ -55,6 +53,10 @@ final class Ida implements MessageUpcall {
 	 * solutions. Will cut off at the bound set in the board.
 	 */
 	private int solutions(Board board, BoardCache cache) {
+    if(bound > globalBound){
+      //System.out.println("bound exceeds globalBound. Exiting");
+      return 0;
+    }
 		if (board.distance() == 0) {
 			return 1;
 		}
@@ -112,7 +114,7 @@ final class Ida implements MessageUpcall {
 		if (useCache) {
 			cache = new BoardCache();
 		}
-		int bound = board.distance();
+		bound = board.distance();
     int initialDepth = board.depth();
 		int solutions;
 
@@ -159,7 +161,7 @@ final class Ida implements MessageUpcall {
 		/* Use suitable default value. */
 		int length = 103;
     int counter = 0;
-    int bound = Integer.MAX_VALUE;
+    int localbound = Integer.MAX_VALUE;
 
 
     int numberOfNodes = ibis.registry().getPoolSize();
@@ -199,6 +201,9 @@ final class Ida implements MessageUpcall {
 
     //Create work queue
     workQueue = new LinkedList<Board>(Arrays.asList(initialBoard.makeMoves()));
+    /*
+    while(workQueue.remove(null)){}
+
     while(workQueue.size() < numberOfNodes){
       LinkedList<Board> workQueue2 = new LinkedList<Board>();
       while(!workQueue.isEmpty()){
@@ -206,6 +211,7 @@ final class Ida implements MessageUpcall {
       }
       workQueue = workQueue2;
     }
+    */
 
     while(workQueue.remove(null)){}
 
@@ -255,11 +261,11 @@ final class Ida implements MessageUpcall {
       if(m.steps < solution.steps &&  m.solutions > solution.solutions){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
-        if(m.steps < bound){
-          bound = m.steps;
-          System.out.printf("Server is broadcasting new bound %d\n", bound);
+        if(m.steps < localbound){
+          localbound = m.steps;
+          System.out.printf("Server is broadcasting new bound %d\n", localbound);
           try{
-            broadcastBound(broadcaster, bound);
+            broadcastBound(broadcaster, localbound);
           } catch (Exception e){
             System.out.println("Server failed to broadcast new bound: " + e.getMessage());
             System.exit(1);
@@ -300,6 +306,16 @@ final class Ida implements MessageUpcall {
       if(m.steps < solution.steps &&  m.solutions > solution.solutions){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
+        if(m.steps < localbound){
+          localbound = m.steps;
+          System.out.printf("Server is broadcasting new bound %d\n", localbound);
+          try{
+            broadcastBound(broadcaster, localbound);
+          } catch (Exception e){
+            System.out.println("Server failed to broadcast new bound: " + e.getMessage());
+            System.exit(1);
+          }
+        }
       }
       try{
         sender = ibis.createSendPort(sendPort);
