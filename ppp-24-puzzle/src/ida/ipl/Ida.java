@@ -153,7 +153,7 @@ final class Ida implements MessageUpcall {
 
 
 
-  private static void server(Ibis ibis, String[] args) throws Exception {
+  private static void server(Ibis ibis, String[] args){
     String fileName = null;
 		boolean cache = true;
 		/* Use suitable default value. */
@@ -222,15 +222,34 @@ final class Ida implements MessageUpcall {
     System.out.printf("Server listening\n");
     SendPort sender = null;
 
-    SendPort broadcaster = ibis.createSendPort(broadcastport);
+    SendPort broadcaster = null;
+    try{
+      broadcaster = ibis.createSendPort(broadcastport);
+    }catch (IOException e){
+      System.out.println("Exception while server created sendPort " + e.getMessage());
+      System.exit(1);
+    }
+
 
     while(!workQueue.isEmpty()){
-      ReadMessage r = receiver.receive();
-      Message m = (Message)(r.readObject());
-      r.finish();
+      ReadMessage r = null;
+      Message m = null;
+      try{
+        r = receiver.receive();
+        m = (Message)(r.readObject());
+        r.finish();
+      }catch (Exception e){
+        System.out.println("Error receiving message from client " + e.getMessage());
+        System.exit(1);
+      }
       if(!nodes.contains(m.id)){
         nodes.add(m.id);
-        broadcaster.connect(m.id, "broadcastport");
+        try{ 
+          broadcaster.connect(m.id, "broadcastport");
+        } catch (ConnectionFailedException e){
+          System.out.println("Server failed to connect to broadcastport of " + m.id + ": " + e.getMessage());
+          System.exit(1);
+        }
       }
       System.out.println("Server received message from " + m.id + m.id.name());
       if(m.steps < solution.steps &&  m.solutions > solution.solutions){
@@ -239,17 +258,26 @@ final class Ida implements MessageUpcall {
         if(m.steps < bound){
           bound = m.steps;
           System.out.printf("Server is broadcasting new bound %d\n", bound);
-          broadcastBound(broadcaster, bound);
+          try{
+            broadcastBound(broadcaster, bound);
+          } catch (Exception e){
+            System.out.println("Server failed to broadcast new bound: " + e.getMessage());
+            System.exit(1);
+          }
         }
       }
       System.out.println("Server tries to connect to " + m.id);
-      sender = ibis.createSendPort(sendPort);
-      sender.connect(m.id, "receivePort");
-      System.out.println("Server connected to " + m.id);
-      WriteMessage w = sender.newMessage();
-      w.writeObject(workQueue.pop());
-      w.finish();
-      sender.close();
+      try{
+        sender = ibis.createSendPort(sendPort);
+        sender.connect(m.id, "receivePort");
+        System.out.println("Server connected to " + m.id);
+        WriteMessage w = sender.newMessage();
+        w.writeObject(workQueue.pop());
+        w.finish();
+        sender.close();
+      }catch (Exception e){
+        System.out.println("Error connecting or sending message to client " + e.getMessage());
+      }
       System.out.println("Server sent object to " + m.id);
       System.out.printf("%d boards remaining in queue\n", workQueue.size());
     }
@@ -258,29 +286,45 @@ final class Ida implements MessageUpcall {
     System.out.println("All boards have been sent");
     for(int i=0;i<numberOfNodes-1;i++){
       System.out.println("Server is waiting for message from client");
-      ReadMessage r = receiver.receive();
-      System.out.println("Server has received a message!");
-      Message m = (Message)(r.readObject());
-      r.finish();
+      ReadMessage r = null;
+      Message m = null;
+      try{
+        r = receiver.receive();
+        System.out.println("Server has received a message!");
+        m = (Message)(r.readObject());
+        r.finish();
+      }catch (Exception e){
+        System.out.println("Server failed to receive message from client " + e.getMessage());
+        System.exit(1);
+      }
       if(m.steps < solution.steps &&  m.solutions > solution.solutions){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
       }
-      sender = ibis.createSendPort(sendPort);
-      sender.connect(m.id, "receivePort");
-      WriteMessage w = sender.newMessage();
-      w.writeObject(null);
-      w.finish();
-      sender.close();
+      try{
+        sender = ibis.createSendPort(sendPort);
+        sender.connect(m.id, "receivePort");
+        WriteMessage w = sender.newMessage();
+        w.writeObject(null);
+        w.finish();
+        sender.close();
+      }catch (Exception e){
+        System.out.println("Server failed to connect or send message (null) to client: " + e.getMessage());
+        System.exit(1);
+      }
       System.out.println("Server has sent null to " + m.id);
     }
 
 
-    receiver.close();
-
 		System.out.println("\nresult is" + solution.solutions  + "solutions of " + solution.steps  + " steps");
-    //broadcastBound(broadcaster,-1);
-    ibis.end();
+    
+    try{
+      receiver.close();
+      ibis.end();
+    }catch (Exception e){
+      System.out.println("Server failed to close port or end ibis: " + e.getMessage());
+      System.exit(1);
+    }
     
   }
   
