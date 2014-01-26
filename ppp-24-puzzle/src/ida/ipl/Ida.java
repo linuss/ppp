@@ -17,6 +17,7 @@ final class Ida implements MessageUpcall {
   static IbisCapabilities ibisCapabilities = new IbisCapabilities(IbisCapabilities.ELECTIONS_STRICT, IbisCapabilities.CLOSED_WORLD);
   int globalBound = Integer.MAX_VALUE;
   int bound = Integer.MAX_VALUE;
+  int initialDepth;
   Ibis ibis;
 
   private static class Message implements Serializable{
@@ -53,7 +54,7 @@ final class Ida implements MessageUpcall {
 	 * solutions. Will cut off at the bound set in the board.
 	 */
 	private int solutions(Board board, BoardCache cache) {
-    if(bound > globalBound){
+    if(bound + initialDepth > globalBound){
       //System.out.println("bound exceeds globalBound. Exiting");
       return 0;
     }
@@ -115,7 +116,7 @@ final class Ida implements MessageUpcall {
 			cache = new BoardCache();
 		}
 		bound = board.distance();
-    int initialDepth = board.depth();
+    initialDepth = board.depth();
 		int solutions;
 
 		System.out.print("Try bound ");
