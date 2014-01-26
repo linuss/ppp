@@ -156,20 +156,17 @@ final class Ida implements MessageUpcall {
 
 
 
-  private static void server(Ibis ibis, String[] args){
+  private void server(Ibis ibis, String[] args){
     String fileName = null;
 		boolean cache = true;
 		/* Use suitable default value. */
 		int length = 103;
-    int counter = 0;
-    int localbound = Integer.MAX_VALUE;
-
-
     int numberOfNodes = ibis.registry().getPoolSize();
     LinkedList<Board> workQueue;
     LinkedList<IbisIdentifier> nodes = new LinkedList<IbisIdentifier>();
     Message solution = new Message(null,Integer.MAX_VALUE,0);
 
+    //Set command line arguments
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("--file")) {
 				fileName = args[++i];
@@ -183,6 +180,8 @@ final class Ida implements MessageUpcall {
 				System.exit(1);
 			}
 		}
+
+    //Generate initial board
 		Board initialBoard = null;
 
 		if (fileName == null) {
@@ -199,19 +198,34 @@ final class Ida implements MessageUpcall {
 		System.out.println("Running IDA*, initial board:");
 		System.out.println(initialBoard);
 
+    if(numberOfNodes == 1){
+      solution = solve(initialBoard,true,ibis);
+		  System.out.println("\nresult is" + solution.solutions  + "solutions of " + solution.steps  + " steps");
+      try{
+        ibis.end();
+      }catch (Exception e){
+        System.out.println("Error closing Ibis: " + e.getMessage());
+      }
+      return;
+    }
+
 
     //Create work queue
     workQueue = new LinkedList<Board>(Arrays.asList(initialBoard.makeMoves()));
+    //makeMoves can return null, this line removes those
     while(workQueue.remove(null)){}
+    
 
+    //Because creating more boards than there are clients incurs a massive 
+    //search overhead, we make sure to never do that. 
+    //Having a couple of idle nodes is better than this overhead...
     while((workQueue.size() + 3) < numberOfNodes){
       workQueue.addAll(Arrays.asList(workQueue.pop().makeMoves()));
       while(workQueue.remove(null)){}
     }
 
-
-    System.out.printf("workQueue has %d boards in it\n", workQueue.size());
-    
+    //Create a receivePort, so the server can receive requests for
+    //work, and answers 
     ReceivePort receiver = null;
     try{
       receiver = ibis.createReceivePort(receivePort, "server");
@@ -220,9 +234,12 @@ final class Ida implements MessageUpcall {
       System.exit(1);
     }
     receiver.enableConnections();
-    System.out.printf("Server listening\n");
+
+    //Create a sendPort to send work to clients
     SendPort sender = null;
 
+    //Create a broadcast port to broadcast a maximum search depth once 
+    //an answer has been found by one of the clients
     SendPort broadcaster = null;
     try{
       broadcaster = ibis.createSendPort(broadcastport);
@@ -232,9 +249,11 @@ final class Ida implements MessageUpcall {
     }
 
 
+    //Cycle through the work queue untill all boards have been sent
     while(!workQueue.isEmpty()){
       ReadMessage r = null;
       Message m = null;
+      //Receive a request for work or a response from a client
       try{
         r = receiver.receive();
         m = (Message)(r.readObject());
@@ -243,6 +262,7 @@ final class Ida implements MessageUpcall {
         System.out.println("Error receiving message from client " + e.getMessage());
         System.exit(1);
       }
+      //Keep a list of all client ids to broadcast new maximum search depths
       if(!nodes.contains(m.id)){
         nodes.add(m.id);
         try{ 
@@ -252,11 +272,14 @@ final class Ida implements MessageUpcall {
           System.exit(1);
         }
       }
-      System.out.println("Server received message from " + m.id + m.id.name());
+      //If a client has found a solution at the same depth, increment the number of solutions
+      if(m.steps == solution.steps){
+        solution.solutions += m.solutions;
+      }
+      //If a new, beter solution is found, store it and broadcast the new bound
       if(m.steps < solution.steps){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
-        System.out.printf("Server is broadcasting new bound %d\n", localbound);
         try{
           broadcastBound(broadcaster, solution.steps);
         } catch (Exception e){
@@ -264,15 +287,11 @@ final class Ida implements MessageUpcall {
           System.exit(1);
         }
       }
-      if(m.steps == solution.steps){
-        solution.solutions += m.solutions;
-      }
 
-      System.out.println("Server tries to connect to " + m.id);
+      //Send a board to a client
       try{
         sender = ibis.createSendPort(sendPort);
         sender.connect(m.id, "receivePort");
-        System.out.println("Server connected to " + m.id);
         WriteMessage w = sender.newMessage();
         w.writeObject(workQueue.pop());
         w.finish();
@@ -280,14 +299,10 @@ final class Ida implements MessageUpcall {
       }catch (Exception e){
         System.out.println("Error connecting or sending message to client " + e.getMessage());
       }
-      System.out.println("Server sent object to " + m.id);
-      System.out.printf("%d boards remaining in queue\n", workQueue.size());
     }
 
     //When all boards have been solved, send null
-    System.out.println("All boards have been sent");
     for(int i=0;i<numberOfNodes-1;i++){
-      System.out.println("Server is waiting for message from client");
       ReadMessage r = null;
       Message m = null;
       try{
@@ -299,19 +314,18 @@ final class Ida implements MessageUpcall {
         System.out.println("Server failed to receive message from client " + e.getMessage());
         System.exit(1);
       }
+      if(m.steps == solution.steps){
+        solution.solutions += m.solutions;
+      }
       if(m.steps < solution.steps){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
-        System.out.printf("Server is broadcasting new bound %d\n", localbound);
         try{
           broadcastBound(broadcaster, solution.steps);
         } catch (Exception e){
           System.out.println("Server failed to broadcast new bound: " + e.getMessage());
           System.exit(1);
         }
-      }
-      if(m.steps == solution.steps){
-        solution.solutions += m.solutions;
       }
       try{
         sender = ibis.createSendPort(sendPort);
@@ -324,30 +338,31 @@ final class Ida implements MessageUpcall {
         System.out.println("Server failed to connect or send message (null) to client: " + e.getMessage());
         System.exit(1);
       }
-      System.out.println("Server has sent null to " + m.id);
     }
 
 
 		System.out.println("\nresult is" + solution.solutions  + "solutions of " + solution.steps  + " steps");
     
+    //Exit cleanly
     try{
       receiver.close();
+      broadcaster.close();
       ibis.end();
     }catch (Exception e){
       System.out.println("Server failed to close port or end ibis: " + e.getMessage());
       System.exit(1);
     }
-    
   }
   
   private void client(Ibis ibis, IbisIdentifier server) throws Exception {
     Board board;
     Message response;
 
+    //Create a sendPort to ask server for work, and send solutions
     SendPort sender  = ibis.createSendPort(clientSendPort);
     sender.connect(server, "server");
-    System.out.println("Client created sendport, and connected to server");
 
+    //Create a receivePort to receive work
     ReceivePort reciever = ibis.createReceivePort(clientReceivePort, "receivePort");
     reciever.enableConnections();
     System.out.println("Client created receiveport");
@@ -390,8 +405,6 @@ final class Ida implements MessageUpcall {
 
   public void start(String[] args){
     IbisIdentifier server = null;
-
-
 
     //Create an Ibis instance
     try{
