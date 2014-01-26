@@ -202,19 +202,13 @@ final class Ida implements MessageUpcall {
 
     //Create work queue
     workQueue = new LinkedList<Board>(Arrays.asList(initialBoard.makeMoves()));
-    /*
     while(workQueue.remove(null)){}
 
-    while(workQueue.size() < numberOfNodes){
-      LinkedList<Board> workQueue2 = new LinkedList<Board>();
-      while(!workQueue.isEmpty()){
-        workQueue2.addAll(Arrays.asList(workQueue.pop().makeMoves()));
-      }
-      workQueue = workQueue2;
+    while((workQueue.size() + 3) < numberOfNodes){
+      workQueue.addAll(Arrays.asList(workQueue.pop().makeMoves()));
+      while(workQueue.remove(null)){}
     }
-    */
 
-    while(workQueue.remove(null)){}
 
     System.out.printf("workQueue has %d boards in it\n", workQueue.size());
     
