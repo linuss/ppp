@@ -253,20 +253,21 @@ final class Ida implements MessageUpcall {
         }
       }
       System.out.println("Server received message from " + m.id + m.id.name());
-      if(m.steps < solution.steps &&  m.solutions > solution.solutions){
+      if(m.steps < solution.steps){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
-        if(m.steps < localbound){
-          localbound = m.steps;
-          System.out.printf("Server is broadcasting new bound %d\n", localbound);
-          try{
-            broadcastBound(broadcaster, localbound);
-          } catch (Exception e){
-            System.out.println("Server failed to broadcast new bound: " + e.getMessage());
-            System.exit(1);
-          }
+        System.out.printf("Server is broadcasting new bound %d\n", localbound);
+        try{
+          broadcastBound(broadcaster, solution.steps);
+        } catch (Exception e){
+          System.out.println("Server failed to broadcast new bound: " + e.getMessage());
+          System.exit(1);
         }
       }
+      if(m.steps == solution.steps){
+        solution.solutions += m.solutions;
+      }
+
       System.out.println("Server tries to connect to " + m.id);
       try{
         sender = ibis.createSendPort(sendPort);
@@ -298,19 +299,19 @@ final class Ida implements MessageUpcall {
         System.out.println("Server failed to receive message from client " + e.getMessage());
         System.exit(1);
       }
-      if(m.steps < solution.steps &&  m.solutions > solution.solutions){
+      if(m.steps < solution.steps){
         solution.steps = m.steps;
         solution.solutions = m.solutions;
-        if(m.steps < localbound){
-          localbound = m.steps;
-          System.out.printf("Server is broadcasting new bound %d\n", localbound);
-          try{
-            broadcastBound(broadcaster, localbound);
-          } catch (Exception e){
-            System.out.println("Server failed to broadcast new bound: " + e.getMessage());
-            System.exit(1);
-          }
+        System.out.printf("Server is broadcasting new bound %d\n", localbound);
+        try{
+          broadcastBound(broadcaster, solution.steps);
+        } catch (Exception e){
+          System.out.println("Server failed to broadcast new bound: " + e.getMessage());
+          System.exit(1);
         }
+      }
+      if(m.steps == solution.steps){
+        solution.solutions += m.solutions;
       }
       try{
         sender = ibis.createSendPort(sendPort);
@@ -358,7 +359,7 @@ final class Ida implements MessageUpcall {
     
     //Send id to server, asking for work
     WriteMessage w = sender.newMessage();
-    w.writeObject(new Message(ibis.identifier(), -1));
+    w.writeObject(new Message(ibis.identifier(), Integer.MAX_VALUE));
     w.finish();
     System.out.println("client sent message to server");
     //wait for response
