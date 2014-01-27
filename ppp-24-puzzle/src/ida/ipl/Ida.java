@@ -110,14 +110,14 @@ final class Ida implements MessageUpcall {
     initialDepth = board.depth();
 		int solutions;
 
-	  System.out.print("Try bound ");
-		System.out.flush();
+	  //System.out.print("Try bound ");
+		//System.out.flush();
 
 		do {
 			board.setBound(bound);
 
-			System.out.print(bound + " ");
-			System.out.flush();
+			//System.out.print(bound + " ");
+			//System.out.flush();
 
 			if (useCache) {
 				solutions = solutions(board, cache);
@@ -200,7 +200,6 @@ final class Ida implements MessageUpcall {
         while(workQueue.remove(null)){}
       }
     }
-    System.out.printf("Number of boards in workqueue: %d\n", workQueue.size());
 
 
     //Create a receivePort, so the server can receive requests for
