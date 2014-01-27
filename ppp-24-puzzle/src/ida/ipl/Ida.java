@@ -110,7 +110,7 @@ final class Ida implements MessageUpcall {
     initialDepth = board.depth();
 		int solutions;
 
-		System.out.print("Try bound ");
+	  System.out.print("Try bound ");
 		System.out.flush();
 
 		do {
@@ -149,6 +149,7 @@ final class Ida implements MessageUpcall {
     LinkedList<Board> workQueue;
     LinkedList<IbisIdentifier> nodes = new LinkedList<IbisIdentifier>();
     Message solution = new Message(null,Integer.MAX_VALUE,0);
+    int bound_start;
 
     //Generate initial board
 		Board initialBoard = null;
@@ -178,20 +179,29 @@ final class Ida implements MessageUpcall {
       return;
     }
 
+    bound_start = initialBoard.distance();
+
 
     //Create work queue
     workQueue = new LinkedList<Board>();
     workQueue.add(initialBoard);
 
+
+
+
     //Because creating more boards than there are clients incurs a massive 
     //search overhead, we make sure to never do that. 
     //Having a couple of idle nodes is better than this overhead...
-    while((workQueue.size() + 2) < numberOfNodes){
+    if((workQueue.size() + 3) < numberOfNodes){
       workQueue.addAll(Arrays.asList(workQueue.pop().makeMoves()));
       while(workQueue.remove(null)){}
+      while((workQueue.size() + 2) < numberOfNodes){
+        workQueue.addAll(Arrays.asList(workQueue.pop().makeMoves()));
+        while(workQueue.remove(null)){}
+      }
     }
+    System.out.printf("Number of boards in workqueue: %d\n", workQueue.size());
 
-    System.out.printf("%d boards in workqueue\n", workQueue.size());
 
     //Create a receivePort, so the server can receive requests for
     //work, and answers 
@@ -276,7 +286,6 @@ final class Ida implements MessageUpcall {
       Message m = null;
       try{
         r = receiver.receive();
-        System.out.println("Server has received a message!");
         m = (Message)(r.readObject());
         r.finish();
       }catch (Exception e){
@@ -310,6 +319,12 @@ final class Ida implements MessageUpcall {
     }
 
 
+    System.out.print("Try bound ");
+    System.out.flush();
+    for(int i = bound_start; i <= solution.steps; i += 2){
+      System.out.print(i + " ");
+      System.out.flush();
+    }
 		System.out.println("\nresult is " + solution.solutions  + " solutions of " + solution.steps  + " steps");
     
     //Exit cleanly
