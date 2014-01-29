@@ -12,15 +12,19 @@ using std::fixed;
 using std::setprecision;
 
 
-const unsigned int nrThreads = 1024;
-const unsigned int MAX_BLOCKS = 65534;
+const unsigned int FILTER_SIZE = 25;
 
 __global__ void createFilterImage(unsigned char * inputImage, unsigned char* smoothImage,
-    float * filter, const int width, const int height, const int spectrum, int iteration){
+    float * filter, const int width, const int height, const int spectrum){
   
-  //Convert one-dimensional coordinate to two dimensions
-  int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))/width;
-  int y = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))%width;
+  __shared__ float shared_filter[FILTER_SIZE];
+  if(threadIdx.x < FILTER_SIZE){
+    shared_filter[threadIdx.x] = filter[threadIdx.x];
+  }
+  __syncthreads();
+
+  int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+  int y = (blockIdx.y * blockDim.y) + threadIdx.y;
 
   if(x < width && y < height){
 
@@ -44,8 +48,8 @@ __global__ void createFilterImage(unsigned char * inputImage, unsigned char* smo
             continue;
           }
 
-          smoothPix += static_cast< float >(inputImage[(z * width * height) + (fy * width) + fx]) * filter[filterItem];
-          filterSum += filter[filterItem];
+          smoothPix += static_cast< float >(inputImage[(z * width * height) + (fy * width) + fx]) * shared_filter[filterItem];
+          filterSum += shared_filter[filterItem];
           filterItem++;
         }
       }
@@ -67,7 +71,6 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
   cudaError_t devRetVal = cudaSuccess;
   int img_size = 3 * width * height;
 
-  printf("img_size: %d\n", img_size);
 
   //Allocate vectors in device memory
   unsigned char * d_input;
@@ -86,7 +89,7 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
   float * d_filter;
   if( (devRetVal = cudaMalloc(&d_filter, 25*sizeof(float)))
       != cudaSuccess){
-    cerr << "Impossible to allocate device memory for d_float." << endl;
+    cerr << "Impossible to allocate device memory for d_filter." << endl;
     exit(1);
   }
 
@@ -107,63 +110,22 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
     exit(1);
   }
 
-  dim3 threadsPerBlock(nrThreads);
-  int numBlocks(img_size/nrThreads);
+  dim3 threadsPerBlock(32,32);
+  dim3 numBlocks(width/threadsPerBlock.x, height/threadsPerBlock.y);
 
-
-  kernelTime.start();
-	// Kernel
-  if(numBlocks > MAX_BLOCKS){
-
-
-    for(int i = 0 ; i <= numBlocks/MAX_BLOCKS   ; i++){
-      createFilterImage<<<MAX_BLOCKS, threadsPerBlock>>>(d_input, d_output, d_filter,
-        width, height, spectrum, i);
-      cudaDeviceSynchronize();
-    }
-  }else{
-    createFilterImage<<<numBlocks, threadsPerBlock>>>(d_input, d_output, d_filter,
-      width, height, spectrum, 0);
-    cudaDeviceSynchronize();
+  if(width%threadsPerBlock.x != 0){
+    numBlocks.x += 1;
+  }
+  if(height%threadsPerBlock.y != 0){
+    numBlocks.y += 1;
   }
 
-  /*
-	for ( int y = 0; y < height; y++ ) {
-		for ( int x = 0; x < width; x++ ) {
-			for ( int z = 0; z < spectrum; z++ ) {
-				unsigned int filterItem = 0;
-				float filterSum = 0.0f;
-				float smoothPix = 0.0f;
+  kernelTime.start();
+  createFilterImage<<<numBlocks,threadsPerBlock>>>(d_input, d_output, d_filter,
+        width, height, spectrum);
+  cudaDeviceSynchronize();
+  kernelTime.stop();
 
-				for ( int fy = y - 2; fy < y + 3; fy++ ) {
-					if ( fy < 0 ) {
-						filterItem += 5;
-						continue;
-					}
-					else if ( fy == height ) {
-						break;
-					}
-					
-					for ( int fx = x - 2; fx < x + 3; fx++ ) {
-						if ( (fx < 0) || (fx >= width) ) {
-							filterItem++;
-							continue;
-						}
-
-						smoothPix += static_cast< float >(inputImage[(z * width * height) + (fy * width) + fx]) * filter[filterItem];
-						filterSum += filter[filterItem];
-						filterItem++;
-					}
-				}
-
-				smoothPix /= filterSum;
-				smoothImage[(z * width * height) + (y * width) + x] = static_cast< unsigned char >(smoothPix + 0.5f);
-			}
-		}
-	}
-  */
-	// /Kernel
-	kernelTime.stop();
 	
   if ( ( devRetVal = cudaGetLastError()) != cudaSuccess ) {
     cerr << "Kernel has some kind of issue: " << cudaGetErrorString(devRetVal)
@@ -185,5 +147,10 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
 
 
 	// Time GFLOP/s GB/s
-	cout << fixed << setprecision(6) << kernelTime.getElapsed() << endl;
+	cout << fixed << setprecision(6) << kernelTime.getElapsed() << 
+    setprecision(3) << " " << (static_cast< long long unsigned int >(width) 
+        * height * 7) / 1000000000.0 / kernelTime.getElapsed() << " " << 
+    (static_cast< long long unsigned int >(width) * height * 
+     (4 * sizeof(unsigned char))) / 1000000000.0 / kernelTime.getElapsed() 
+    << endl;
 }

@@ -1,4 +1,3 @@
-
 #include <Timer.hpp>
 #include <iostream>
 #include <iomanip>
@@ -17,20 +16,19 @@ const unsigned int MAX_BLOCKS = 65534;
 __global__ void darkenImage(const unsigned char * inputImage,
     unsigned char * outputImage, const int width, const int height, int iteration){
 
-  int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))%width;
-  int y = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads)))/width;
+  int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads))) * 3;
 
-  if(x < width && y < height){
+  if(x+2 < (3 * width*height)){
     float grayPix = 0.0f;
-    float r = static_cast< float >(inputImage[(y * width) + x]);
-    float g = static_cast< float >(inputImage[(width * height) + (y * width) + x]);
-    float b = static_cast< float >(inputImage[(2 * width * height) + (y * width) + x]);
+    float r = static_cast< float >(inputImage[x]);
+    float g = static_cast< float >(inputImage[x+1]);
+    float b = static_cast< float >(inputImage[x+2]);
 
     grayPix = __fadd_rn(__fadd_rn(__fmul_rn(0.3f, r),__fmul_rn(0.59f, g)), __fmul_rn(0.11f, b));
     grayPix = fma(grayPix,0.6f,0.5f);
 
 
-    outputImage[(y * width) + x] = static_cast< unsigned char >(grayPix);
+    outputImage[(x/3)] = static_cast< unsigned char >(grayPix);
   }
 }
 
@@ -43,6 +41,17 @@ void darkGray(const int width, const int height,
   cudaError_t devRetVal = cudaSuccess;
   int color_image_size = width*height*3;
   int bw_image_size = width*height;
+
+  /*Realign the values in the input image to allow 
+    coalesced memory access*/
+  unsigned char * inputImageCoalesced = (unsigned char *)
+    (malloc(3*height*width*(sizeof(unsigned char))));
+  
+  for(int i = 0; i<bw_image_size;i++){
+    inputImageCoalesced[i*3] = inputImage[i];
+    inputImageCoalesced[(i*3)+1] = inputImage[bw_image_size + i];
+    inputImageCoalesced[(i*3)+2] = inputImage[(2*bw_image_size) + i];
+  }
 
   //Allocate vectors in device memory
   unsigned char * d_input;
@@ -60,17 +69,18 @@ void darkGray(const int width, const int height,
   }
 
 
-  //Copy vector from host memory to device memory
-  if( (devRetVal = cudaMemcpy(d_input, inputImage, color_image_size , 
+  if( (devRetVal = cudaMemcpy(d_input, inputImageCoalesced, color_image_size , 
           cudaMemcpyHostToDevice)) != cudaSuccess){
     cerr << "Impossible to copy inputImage to device" << endl;
     exit(1);
   }
+
   if( (devRetVal = cudaMemcpy(d_output, darkGrayImage, bw_image_size , 
           cudaMemcpyHostToDevice)) != cudaSuccess){
     cerr << "Impossible to copy darkGrayImage to device" << endl;
     exit(1);
   }
+
 
   int threadsPerBlock(nrThreads);
   int numBlocks((bw_image_size/nrThreads) );
@@ -79,6 +89,7 @@ void darkGray(const int width, const int height,
     numBlocks++;
   }
 
+  free(inputImageCoalesced);
 
 	kernelTime.start();
 	if(numBlocks > MAX_BLOCKS){
