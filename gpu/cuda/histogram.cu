@@ -10,12 +10,17 @@ using std::endl;
 using std::fixed;
 using std::setprecision;
 
-const unsigned int nrThreads = 1024;
+const unsigned int nrThreads = 256;
 const unsigned int MAX_BLOCKS = 65534;
 
 __global__ void createHistogram(const unsigned char * inputImage, 
     unsigned char * outputImage, unsigned int * histogram, const int width, const int height, int iteration){
 
+  __shared__ unsigned int temp[256];
+
+  temp[threadIdx.x] = 0;
+  __syncthreads();
+  
   int x = ((blockIdx.x * blockDim.x) + (threadIdx.x + (iteration * MAX_BLOCKS * nrThreads))) * 3;
 
   if(x+2 < (3 * width*height)){
@@ -28,7 +33,10 @@ __global__ void createHistogram(const unsigned char * inputImage,
     grayPix = __fadd_rn(__fadd_rn(__fadd_rn(__fmul_rn(0.3f, r),__fmul_rn(0.59f, g)), __fmul_rn(0.11f, b)), 0.5f);
 
     outputImage[(x/3)] = static_cast< unsigned char >(grayPix);
-    atomicAdd(&histogram[static_cast< unsigned int >(grayPix)], 1);
+    atomicAdd(&temp[static_cast< unsigned int >(grayPix)], 1);
+
+    __syncthreads();
+    atomicAdd( &(histogram[threadIdx.x]), temp[threadIdx.x]);
   }
 }
 
